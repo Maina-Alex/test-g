@@ -8,7 +8,6 @@ import com.intellisoft.digitalhealthbackend.dto.PatientWrapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -31,18 +30,13 @@ class PatientControllerTest {
     private MockMvc mockMvc;
     @Autowired
     private ObjectMapper objectMapper;
-    @Value("${api.key.header}")
-    private String apiKeyHeader;
-
-    @Value("${api.key.secret}")
-    private String apiKeySecret;
 
     @Test
+    @WithMockUser(username = "api-client", roles = {"API_CLIENT"})
     @DisplayName("Create a patient successfully")
     void createPatient_ShouldReturnCreatedPatient() throws Exception {
         PatientWrapper patientWrapper = createSamplePatientWrapper();
         mockMvc.perform(post("/api/patients")
-                .header(apiKeyHeader, apiKeySecret)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(patientWrapper)))
                 .andExpect(status().isOk())
@@ -54,9 +48,7 @@ class PatientControllerTest {
     @DisplayName("Retrieve a patient successfully")
     void retrievePatient_WithValidId_ShouldReturnPatient() throws Exception {
         Long patientId = 1L;
-        mockMvc.perform(get("/api/patients/{id}", patientId)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/api/patients/{id}", patientId).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is( "Patient retrieved successfully")))
                 .andExpect(jsonPath("$.data").exists());
@@ -67,7 +59,6 @@ class PatientControllerTest {
     void retrievePatient_WithInvalidId_ShouldReturnNotFound() throws Exception {
         Long invalidPatientId = 99999L;
         mockMvc.perform(get("/api/patients/{id}", invalidPatientId)
-                        .header(apiKeyHeader, apiKeySecret)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(400))
@@ -80,8 +71,7 @@ class PatientControllerTest {
         Long patientId = 1L;
         PatientWrapper updatedPatient = createSamplePatientWrapper();
         mockMvc.perform(put("/api/patients/{id}", patientId).contentType(MediaType.APPLICATION_JSON)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .content(objectMapper.writeValueAsString(updatedPatient)))
+                .content(objectMapper.writeValueAsString(updatedPatient)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient updated successfully")))
                 .andExpect(jsonPath("$.data").exists());
@@ -93,8 +83,7 @@ class PatientControllerTest {
         Long invalidPatientId = 99999L;
         PatientWrapper patientWrapper = createSamplePatientWrapper();
         mockMvc.perform(put("/api/patients/{id}", invalidPatientId)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(patientWrapper)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient not found")));
@@ -105,8 +94,7 @@ class PatientControllerTest {
     void deletePatient_WithValidId_ShouldReturnSuccess() throws Exception {
         Long patientId = 1L;
         mockMvc.perform(delete("/api/patients/{id}", patientId)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient deleted successfully")));
     }
@@ -115,7 +103,6 @@ class PatientControllerTest {
     void deletePatient_WithVExistingEncounters_ShouldThrowError() throws Exception {
         Long patientId = 1L;
         mockMvc.perform(delete("/api/patients/{id}", patientId)
-                        .header(apiKeyHeader, apiKeySecret)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient has encounters, kindly clear the encounters")));
@@ -125,8 +112,7 @@ class PatientControllerTest {
     void deletePatient_WithInvalidId_ShouldReturnNotFound() throws Exception {
         Long invalidPatientId = 99999L;
         mockMvc.perform(delete("/api/patients/{id}", invalidPatientId)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON))
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient not found")));
     }
@@ -136,9 +122,7 @@ class PatientControllerTest {
     void addPatientEncounter_WithValidData_ShouldReturnSuccess() throws Exception {
         Long patientId = 1L;
         EncounterWrapper encounterWrapper = createSampleEncounterWrapper();
-        mockMvc.perform(post("/api/patients/add-encounter/{patientId}", patientId).contentType(MediaType.APPLICATION_JSON)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .content(objectMapper.writeValueAsString(encounterWrapper)))
+        mockMvc.perform(post("/api/patients/add-encounter/{patientId}", patientId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(encounterWrapper)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Encounter added successfully")))
                 .andExpect(jsonPath("$.data").exists());
@@ -149,9 +133,7 @@ class PatientControllerTest {
     void addPatientEncounter_WithInvalidPatientId_ShouldReturnError() throws Exception {
         Long invalidPatientId = 99999L;
         EncounterWrapper encounterWrapper = createSampleEncounterWrapper();
-        mockMvc.perform(post("/api/patients/add-encounter/{patientId}", invalidPatientId).contentType(MediaType.APPLICATION_JSON)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .content(objectMapper.writeValueAsString(encounterWrapper)))
+        mockMvc.perform(post("/api/patients/add-encounter/{patientId}", invalidPatientId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(encounterWrapper)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient not found")));
     }
@@ -160,9 +142,7 @@ class PatientControllerTest {
     void addEncounterObservation_WithValidData_ShouldReturnSuccess() throws Exception {
         Long encounterId = 2L;
         ObservationWrapper observationWrapper = createSampleObservationWrapper();
-        mockMvc.perform(post("/api/patients/add/observations/{encounterId}", encounterId).contentType(MediaType.APPLICATION_JSON)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .content(objectMapper.writeValueAsString(observationWrapper)))
+        mockMvc.perform(post("/api/patients/add/observations/{encounterId}", encounterId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(observationWrapper)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Encounter added successfully")))
                 .andExpect(jsonPath("$.data").exists());
@@ -172,9 +152,7 @@ class PatientControllerTest {
     void addEncounterObservation_WithInvalidEncounterId_ShouldReturnError() throws Exception {
         Long invalidEncounterId = 99999L;
         ObservationWrapper observationWrapper = createSampleObservationWrapper();
-        mockMvc.perform(post("/api/patients/add/observations/{encounterId}", invalidEncounterId).contentType(MediaType.APPLICATION_JSON)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .content(objectMapper.writeValueAsString(observationWrapper)))
+        mockMvc.perform(post("/api/patients/add/observations/{encounterId}", invalidEncounterId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(observationWrapper)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Encounter with the given id does not exist")));
     }
@@ -183,9 +161,7 @@ class PatientControllerTest {
     void endPatientEncounter_WithValidData_ShouldReturnSuccess() throws Exception {
         Long encounterId = 2L;
         EndEncounterWrapper encounterWrapper = createEncounterWrapper();
-        mockMvc.perform(post("/api/patients/end/encounter/{encounterId}", encounterId)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(encounterWrapper)))
+        mockMvc.perform(post("/api/patients/end/encounter/{encounterId}", encounterId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(encounterWrapper)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Encounter ended successfully")));
     }
@@ -195,9 +171,7 @@ class PatientControllerTest {
     void endPatientEncounter_WithInvalidEncounterId_ShouldReturnError() throws Exception {
         Long invalidEncounterId = 99999L;
         EndEncounterWrapper encounterWrapper = createEncounterWrapper();
-        mockMvc.perform(post("/api/patients/end/encounter/{encounterId}", invalidEncounterId)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(encounterWrapper)))
+        mockMvc.perform(post("/api/patients/end/encounter/{encounterId}", invalidEncounterId).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(encounterWrapper)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Encounter with the given id does not exist")))
                 .andExpect(jsonPath("$.status", is(400)));
@@ -211,9 +185,7 @@ class PatientControllerTest {
         String birthDate = "1990-01-01";
         int page = 0;
         int size = 10;
-        mockMvc.perform(get("/api/patients").param("family", family).param("given", givenName).param("identifier", String.valueOf(identifier)).param("birthDate", birthDate).param("page", String.valueOf(page)).param("size", String.valueOf(size))
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/api/patients").param("family", family).param("given", givenName).param("identifier", String.valueOf(identifier)).param("birthDate", birthDate).param("page", String.valueOf(page)).param("size", String.valueOf(size)).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient encounters and Observations")))
                 .andExpect(jsonPath("$.data").exists());
@@ -222,7 +194,6 @@ class PatientControllerTest {
     @Test
     void retrievePatientEncountersAndObservation_WithMissingParams_ShouldReturnBadRequest() throws Exception {
         mockMvc.perform(get("/api/patients")
-                        .header(apiKeyHeader, apiKeySecret)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }
@@ -230,9 +201,7 @@ class PatientControllerTest {
     @Test
     void viewPatientEncounters_WithValidPatientId_ShouldReturnEncounters() throws Exception {
         Long patientId = 1L;
-        mockMvc.perform(get("/api/patients/{id}/encounters", patientId)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/api/patients/{id}/encounters", patientId).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient encounters retrieved successfully")))
                 .andExpect(jsonPath("$.data").exists());
@@ -241,9 +210,7 @@ class PatientControllerTest {
     @Test
     void viewPatientEncounters_WithInvalidPatientId_ShouldReturnError() throws Exception {
         Long invalidPatientId = 99999L;
-        mockMvc.perform(get("/api/patients/{id}/encounters", invalidPatientId)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/api/patients/{id}/encounters", invalidPatientId).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient not found")));
     }
@@ -251,9 +218,7 @@ class PatientControllerTest {
     @Test
     void viewPatientObservations_WithValidPatientId_ShouldReturnObservations() throws Exception {
         Long patientId = 1L;
-        mockMvc.perform(get("/api/patients/{id}/observations", patientId)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/api/patients/{id}/observations", patientId).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient observations retrieved successfully")))
                 .andExpect(jsonPath("$.data").exists());
@@ -262,9 +227,7 @@ class PatientControllerTest {
     @Test
     void viewPatientObservations_WithInvalidPatientId_ShouldReturnError() throws Exception {
         Long invalidPatientId = 99999L;
-        mockMvc.perform(get("/api/patients/{id}/observations", invalidPatientId)
-                        .header(apiKeyHeader, apiKeySecret)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/api/patients/{id}/observations", invalidPatientId).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message", is("Patient not found")));
     }

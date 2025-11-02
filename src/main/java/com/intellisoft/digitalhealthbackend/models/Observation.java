@@ -30,9 +30,12 @@ public class Observation extends BaseEntity {
     @Pattern(regexp = "^[A-Z0-9_-]+$", message = "Code must contain only uppercase letters, numbers, underscores, and hyphens")
     @Column(nullable = false, length = 50)
     private String code;
+    @NotBlank(message = "Observation value is mandatory")
     @Size(max = 500, message = "Value cannot exceed 500 characters")
     @Column(name = "observation-value", nullable = false, length = 500)
     private String value;
+    @NotNull(message = "Effective date and time is mandatory")
+    @PastOrPresent(message = "Effective date and time cannot be in the future")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     @Column(nullable = false)
     private LocalDateTime effectiveDateTime;

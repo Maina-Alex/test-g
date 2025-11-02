@@ -15,6 +15,8 @@ public record ObservationWrapper(
         @Size(max = 500, message = "Value cannot exceed 500 characters")
         String value,
         @NotNull(message = "Effective date and time is mandatory")
+        @PastOrPresent(message = "Effective date and time cannot be in the future")
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
         String effectiveDateTime
 ) {
 }
