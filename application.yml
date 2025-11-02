@@ -19,17 +19,23 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         use_sql_comments: true
-spingdoc:
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    drop-first: false
+    contexts: dev
+
+springdoc:
   swagger-ui:
     path: /swagger-ui.html
   enabled: true
-
 
 logging:
   level:
@@ -41,5 +47,3 @@ api:
   key:
     header: X-API-KEY
     secret: 367293648
-
-
