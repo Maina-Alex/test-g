@@ -1,6 +1,6 @@
 #FileLock
-#Sun Nov 02 19:45:20 EAT 2025
-server=127.0.1.1\:37453
-hostName=wizard54-HP-EliteBook-850-G5
+#Sun Nov 02 20:46:50 EAT 2025
+hostName=localhost
+id=19a45add09984936e8b359da6d76a3a373fb30447bb
 method=file
-id=19a45758286d248abe25fad4add922e9215145e95d9
+server=localhost\:60572
