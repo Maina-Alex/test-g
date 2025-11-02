@@ -1,0 +1,8 @@
+services:
+  DigitalHealthBackend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: digital-health-backend
+    ports:
+      - "8080:8080"
