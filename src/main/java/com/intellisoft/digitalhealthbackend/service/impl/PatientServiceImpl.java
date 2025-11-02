@@ -13,6 +13,16 @@ import com.intellisoft.digitalhealthbackend.repository.EncounterRepository;
 import com.intellisoft.digitalhealthbackend.repository.ObservationRepository;
 import com.intellisoft.digitalhealthbackend.repository.PatientRepository;
 import com.intellisoft.digitalhealthbackend.service.PatientService;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -22,12 +32,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
 
 @Slf4j
 @Service
@@ -40,7 +44,8 @@ public class PatientServiceImpl implements PatientService {
     @Override
     public UniversalResponse createPatient(PatientWrapper patientWrapper) {
         try {
-            Optional<Patient> optionalPatient = patientRepository.findByIdentifier(patientWrapper.identifier());
+            Optional<Patient> optionalPatient =
+                    patientRepository.findByIdentifier(patientWrapper.identifier());
             if (optionalPatient.isPresent()) {
                 Patient existingPatient = optionalPatient.get();
                 if (existingPatient.getSoftDelete()) {
@@ -60,39 +65,53 @@ public class PatientServiceImpl implements PatientService {
                 }
             }
             Date birthDate = formatDate(patientWrapper.birthDate());
-            Patient patient = Patient.builder()
-                    .identifier(patientWrapper.identifier())
-                    .birthDate(birthDate)
-                    .gender(Gender.valueOf(patientWrapper.gender()))
-                    .familyName(patientWrapper.familyName())
-                    .givenName(patientWrapper.givenName())
-                    .build();
+            Patient patient =
+                    Patient.builder()
+                            .identifier(patientWrapper.identifier())
+                            .birthDate(birthDate)
+                            .gender(Gender.valueOf(patientWrapper.gender()))
+                            .familyName(patientWrapper.familyName())
+                            .givenName(patientWrapper.givenName())
+                            .build();
             patientRepository.save(patient);
-            return UniversalResponse.builder().status(HttpStatus.OK.value()).message("Patient created successfully").data(patient).build();
+            return UniversalResponse.builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Patient created successfully")
+                    .data(patient)
+                    .build();
         } catch (Exception e) {
             throw new PatientException(e.getMessage());
         }
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public UniversalResponse retrievePatient(Long patientId) {
-        Patient patient = patientRepository.findByIdAndSoftDeleteFalse(patientId).orElseThrow(() -> new PatientException("Patient not found"));
+        Patient patient =
+                patientRepository
+                        .findByIdAndSoftDeleteFalse(patientId)
+                        .orElseThrow(() -> new PatientException("Patient not found"));
         return UniversalResponse.builder()
                 .status(HttpStatus.OK.value())
                 .message("Patient retrieved successfully")
-                .data(patient).build();
+                .data(patient)
+                .build();
     }
 
     @Override
     public UniversalResponse updatePatient(Long patientId, PatientWrapper patientWrapper) {
-        Patient patient = patientRepository.findByIdAndSoftDeleteFalse(patientId).orElseThrow(() -> new PatientException("Patient not found"));
+        Patient patient =
+                patientRepository
+                        .findByIdAndSoftDeleteFalse(patientId)
+                        .orElseThrow(() -> new PatientException("Patient not found"));
         if (!(patient.getIdentifier().equals(patientWrapper.identifier()))) {
-            patientRepository.findByIdentifierAndSoftDeleteFalse(patientWrapper.identifier())
-                    .ifPresent(existingPatient -> {
-                        throw new PatientException("Identifier already exists for another patient");
-                    });
+            patientRepository
+                    .findByIdentifierAndSoftDeleteFalse(patientWrapper.identifier())
+                    .ifPresent(
+                            existingPatient -> {
+                                throw new PatientException(
+                                        "Identifier already exists for another patient");
+                            });
             patient.setIdentifier(patientWrapper.identifier());
         }
         Date birthDate = formatDate(patientWrapper.birthDate());
@@ -110,8 +129,12 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public UniversalResponse deletePatient(Long patientId) {
-        Patient patient = patientRepository.findByIdAndSoftDeleteFalse(patientId).orElseThrow(() -> new PatientException("Patient not found"));
-        if (!patient.getEncounters().isEmpty()) {
+        Patient patient =
+                patientRepository
+                        .findByIdAndSoftDeleteFalse(patientId)
+                        .orElseThrow(() -> new PatientException("Patient not found"));
+        long encountersCount = encounterRepository.countByPatientIdAndSoftDeleteFalse(patientId);
+        if (encountersCount > 0) {
             throw new PatientException("Patient has encounters, kindly clear the encounters");
         }
         patient.setSoftDelete(true);
@@ -123,9 +146,12 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public UniversalResponse addPatientEncounters(Long patientId, EncounterWrapper encounterWrapper) {
-        Patient patient = patientRepository.findByIdAndSoftDeleteFalse(patientId)
-                .orElseThrow(() -> new PatientException("Patient not found"));
+    public UniversalResponse addPatientEncounters(
+            Long patientId, EncounterWrapper encounterWrapper) {
+        Patient patient =
+                patientRepository
+                        .findByIdAndSoftDeleteFalse(patientId)
+                        .orElseThrow(() -> new PatientException("Patient not found"));
         List<Encounter> patientEncounters = patient.getEncounters();
         if (patientEncounters == null) {
             patientEncounters = new ArrayList<>();
@@ -133,11 +159,12 @@ public class PatientServiceImpl implements PatientService {
         }
         Date encounterDate = formatDate(encounterWrapper.encounterDate());
         LocalDateTime startTime = formatDateTime(encounterWrapper.start());
-        Encounter encounter = Encounter.builder()
-                .encounterDate(encounterDate)
-                .start(startTime)
-                .patient(patient)
-                .build();
+        Encounter encounter =
+                Encounter.builder()
+                        .encounterDate(encounterDate)
+                        .start(startTime)
+                        .patient(patient)
+                        .build();
         encounterRepository.save(encounter);
         patientEncounters.add(encounter);
         patientRepository.save(patient);
@@ -151,7 +178,13 @@ public class PatientServiceImpl implements PatientService {
     @Override
     public UniversalResponse endPatientEncounter(Long encounterId, String endEncounter) {
         LocalDateTime encounterDateTime = formatDateTime(endEncounter);
-        Encounter encounter = encounterRepository.findByIdAndSoftDeleteFalse(encounterId).orElseThrow(() -> new PatientException("Encounter with the given id does not exist"));
+        Encounter encounter =
+                encounterRepository
+                        .findByIdAndSoftDeleteFalse(encounterId)
+                        .orElseThrow(
+                                () ->
+                                        new PatientException(
+                                                "Encounter with the given id does not exist"));
         encounter.setEnd(encounterDateTime);
         encounterRepository.save(encounter);
         return UniversalResponse.builder()
@@ -162,13 +195,20 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public UniversalResponse retrievePatientEncountersAndObservation(String family, String givenName, Long identifier, String date, int page, int size) {
+    public UniversalResponse retrievePatientEncountersAndObservation(
+            String family, String givenName, Long identifier, String date, int page, int size) {
         try {
             log.info("incoming request  date{}", date);
             Date birthDate = formatDate(date);
-            Patient patient = patientRepository.findPatientByFamilyNameAndGivenNameAndIdentifierAndBirthDateAndSoftDeleteFalse(family, givenName, identifier, birthDate).orElseThrow(() -> new PatientException("Patient not found"));
+            Patient patient =
+                    patientRepository
+                            .findPatientByFamilyNameAndGivenNameAndIdentifierAndBirthDateAndSoftDeleteFalse(
+                                    family, givenName, identifier, birthDate)
+                            .orElseThrow(() -> new PatientException("Patient not found"));
             Pageable pageable = PageRequest.of(page, size);
-            Page<Encounter> patientEncounters = encounterRepository.findByPatientIdAndSoftDeleteFalse(patient.getId(), pageable);
+            Page<Encounter> patientEncounters =
+                    encounterRepository.findByPatientIdAndSoftDeleteFalse(
+                            patient.getId(), pageable);
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("encounters", patientEncounters.getContent());
             responseData.put("currentPage", patientEncounters.getNumber());
@@ -179,16 +219,18 @@ public class PatientServiceImpl implements PatientService {
             return UniversalResponse.builder()
                     .data(responseData)
                     .status(HttpStatus.OK.value())
-                    .message("Patient encounters and Observations").build();
+                    .message("Patient encounters and Observations")
+                    .build();
         } catch (Exception ex) {
             throw new PatientException(ex.getMessage());
         }
-
     }
 
     public UniversalResponse viewPatientEncounters(Long patientId) {
-        Patient patient = patientRepository.findByIdAndSoftDeleteFalse(patientId)
-                .orElseThrow(() -> new PatientException("Patient not found"));
+        Patient patient =
+                patientRepository
+                        .findByIdAndSoftDeleteFalse(patientId)
+                        .orElseThrow(() -> new PatientException("Patient not found"));
         List<Encounter> encounters = patient.getEncounters();
         if (encounters == null) {
             encounters = new ArrayList<>();
@@ -201,10 +243,13 @@ public class PatientServiceImpl implements PatientService {
     }
 
     public UniversalResponse viewPatientObservations(Long patientId) {
-        Patient patient = patientRepository.findByIdAndSoftDeleteFalse(patientId)
-                .orElseThrow(() -> new PatientException("Patient not found"));
-        Pageable pageable = PageRequest.of(0, 10, Sort.Direction.DESC);
-        Page<Observation> observationsPage = observationRepository.findObservationByPatientAndSoftDeleteFalse(patient, pageable);
+        Patient patient =
+                patientRepository
+                        .findByIdAndSoftDeleteFalse(patientId)
+                        .orElseThrow(() -> new PatientException("Patient not found"));
+        Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "id"));
+        Page<Observation> observationsPage =
+                observationRepository.findObservationByPatientAndSoftDeleteFalse(patient, pageable);
         List<Observation> observations = observationsPage.getContent();
         return UniversalResponse.builder()
                 .status(HttpStatus.OK.value())
@@ -214,21 +259,29 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public UniversalResponse addEncounterObservation(Long encounterId, ObservationWrapper observationWrapper) {
-        Encounter encounter = encounterRepository.findByIdAndSoftDeleteFalse(encounterId).orElseThrow(() -> new PatientException("Encounter with the given id does not exist"));
+    public UniversalResponse addEncounterObservation(
+            Long encounterId, ObservationWrapper observationWrapper) {
+        Encounter encounter =
+                encounterRepository
+                        .findByIdAndSoftDeleteFalse(encounterId)
+                        .orElseThrow(
+                                () ->
+                                        new PatientException(
+                                                "Encounter with the given id does not exist"));
         List<Observation> patientObservations = encounter.getObservations();
         if (patientObservations == null) {
             patientObservations = new ArrayList<>();
             encounter.setObservations(patientObservations);
         }
         LocalDateTime effectiveDateTime = formatDateTime(observationWrapper.effectiveDateTime());
-        Observation observation = Observation.builder()
-                .code(observationWrapper.code())
-                .value(observationWrapper.value())
-                .effectiveDateTime(effectiveDateTime)
-                .patient(encounter.getPatient())
-                .encounter(encounter)
-                .build();
+        Observation observation =
+                Observation.builder()
+                        .code(observationWrapper.code())
+                        .value(observationWrapper.value())
+                        .effectiveDateTime(effectiveDateTime)
+                        .patient(encounter.getPatient())
+                        .encounter(encounter)
+                        .build();
         observationRepository.save(observation);
         patientObservations.add(observation);
         encounterRepository.save(encounter);
@@ -249,7 +302,9 @@ public class PatientServiceImpl implements PatientService {
             formatter.setLenient(false);
             return formatter.parse(date);
         } catch (ParseException e) {
-            throw new PatientException("Invalid date format. Expected: yyyy-MM-dd (e.g., 1996-08-09), but got: " + date);
+            throw new PatientException(
+                    "Invalid date format. Expected: yyyy-MM-dd (e.g., 1996-08-09), but got: "
+                            + date);
         } catch (Exception e) {
             throw new PatientException("Error parsing date: " + e.getMessage());
         }
@@ -263,6 +318,4 @@ public class PatientServiceImpl implements PatientService {
             throw new PatientException(exception.getMessage());
         }
     }
-
-
 }
